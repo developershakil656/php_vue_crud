@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue PHP CRUD</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="app">
+        <div class="container">
+            <h2>{{successMessage}}</h2>
+            <h2>{{errorMessage}}</h2>
+            <div class="row">
+                <h3>All Users</h3>
+                <button @click="userModal=true">Add New</button>
+            </div>
+            <table>
+                <tr>
+                    <th>SL</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Username</th>
+                    <th>Action</th>
+                </tr>
+                <tr v-for="user in users">
+                    <td>{{user.id}}</td>
+                    <td>{{user.name}}</td>
+                    <td>{{user.email}}</td>
+                    <td>{{user.username}}</td>
+                    <td>
+                        <button @click="updateModal=true,editUserDate(user)">Edit</button>
+                        <button @click="deleteUser(user.id)">delete</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="modal" v-if="userModal==true">
+            <div class="content fix">
+                <div class="modal-header fix">
+                    <h3 class="float-left">Add new User</h3>
+                    <button class="float-right" @click="userModal=false">x</button>
+                </div>
+                <hr>
+                <div class="form">
+                    <form method="POST">
+                        <div class="form-input">
+                            <p>Name:</p>
+                            <input type="text" placeholder="Name" v-model="form.name">
+                        </div>
+                        <div class="form-input">
+                            <p>Username</p>
+                            <input type="text" placeholder="Username" v-model="form.username">
+                        </div>
+                        <div class="form-input">
+                            <p>Email:</p>
+                            <input type="email" placeholder="Email" v-model="form.email">
+                        </div>
+                    </form>
+                    <button @click="createUser">Save</button>
+                </div>
+
+            </div>
+        </div>
+        <div class="modal" v-if="updateModal==true">
+            <div class="content fix">
+                <div class="modal-header fix">
+                    <h3 class="float-left">Edit User</h3>
+                    <button class="float-right" @click="closeUpdateModal">x</button>
+                </div>
+                <hr>
+                <div class="form">
+                    <form method="POST">
+                        <div class="form-input">
+                            <p>Name:</p>
+                            <input type="text" placeholder="Name" v-model="updateForm.name">
+                        </div>
+                        <div class="form-input">
+                            <p>Username</p>
+                            <input type="text" placeholder="Username" v-model="updateForm.username">
+                        </div>
+                        <div class="form-input">
+                            <p>Email:</p>
+                            <input type="email" placeholder="Email" v-model="updateForm.email">
+                        </div>
+                    </form>
+                    <button @click="updateUser">Update</button>
+                </div>
+    
+            </div>
+        </div>
+    </div>
+
+    
+
+
+
+
+
+
+
+
+
+    <script src="js/axios.min.js"></script>
+    <script src="js/vue.js"></script>
+    <script>
+
+        var app = new Vue({
+            el: '.app',
+            data: {
+                users: {},
+                form: {
+                    name:null,
+                    email:null,
+                    username:null
+                },
+                userModal: false,
+                updateModal:false,
+                updateForm:{},
+                errorMessage: null,
+                successMessage: null
+            },
+            methods: {
+                getUsers: function () {
+                    var link = this;
+                    axios.get("http://localhost:8080/vue_php_crud/api.php?action=read")
+                        .then(function (response) {
+                            if (!response.data.error) {
+                                // link.successMessage = response.data.message;
+                                link.users = response.data.users;
+                            } else {
+                                link.errorMessage = response.data.message;
+                            }
+
+                        })
+                },
+                createUser: function () {
+                    if(this.form.email && this.form.username){
+                        let data = this.toFormData(this.form);
+                    axios.post("http://localhost:8080/vue_php_crud/api.php?action=create", data)
+                        .then(function (response) {
+                            if (!response.data.error) {
+                                app.form.name = null;
+                                app.form.email = null;
+                                app.form.username = null;
+
+                                app.getUsers();
+                                
+                                app.userModal = false;
+                                app.successMessage = response.data.message;
+                                app.errorMessage = null;
+                            } else {
+                                app.errorMessage = response.data.message;
+                                app.successMessage =null;
+                            }
+                        });
+                    }
+                },
+                updateUser: function () {
+                    if(this.updateForm.email && this.updateForm.username){
+                        let data = this.toFormData(this.updateForm);
+                        axios.post("http://localhost:8080/vue_php_crud/api.php?action=update", data)
+                            .then(function (response) {
+                                if (!response.data.error) {
+
+                                    app.updateForm.name = null;
+                                    app.updateForm.email = null;
+                                    app.updateForm.username = null;
+
+                                    app.getUsers();
+                                    app.updateModal = false;
+                                    app.successMessage = response.data.message;
+                                    app.errorMessage = null;
+                                } else {
+                                    app.errorMessage = response.data.message;
+                                    app.successMessage =null;
+                                }
+                        });
+                    }
+                },
+                deleteUser: function (id) {
+                    let data = this.toFormData({ id: id });
+                    axios.post("http://localhost:8080/vue_php_crud/api.php?action=delete", data)
+                        .then(function (response) {
+                            if (!response.data.error) {
+                                app.successMessage = response.data.message;
+                                app.errorMessage = null;
+                                app.getUsers();
+                            } else {
+                                app.errorMessage = response.data.message;
+                                app.successMessage =null;
+                            }
+                        });
+                },
+                editUserDate:function(user){
+                    this.updateForm=user;
+                },
+                closeUpdateModal:function(){
+                    this.getUsers();
+                    this.updateModal=false;
+                },
+                toFormData: function (obj) {
+                    let data = new FormData;
+                    for (let key in obj) {
+                        data.append(key, obj[key]);
+                    }
+                    return data;
+                }
+            },
+            mounted: function () {
+                this.getUsers()
+            }
+        })
+    </script>
+</body>
+
+</html>
